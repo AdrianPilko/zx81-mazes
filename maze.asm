@@ -195,7 +195,7 @@ genLoop
     ld a, (genRow)	 ; col set for PRINTAT
     ld b, a
     call PRINTAT		; ROM routine to set current cursor position, from row b and column e
-    ld a,0
+    ld a,7
     call PRINT
     jr checkGenColRow
 
@@ -214,7 +214,7 @@ skipSetBlankAbove
     inc a
     ld c, a
     call PRINTAT		; ROM routine to set current cursor position, from row b and column e
-    ld a,0
+    ld a,8
     call PRINT
 
 checkGenColRow
