@@ -24,9 +24,7 @@ setRandomNumberZeroOne
 tryAnotherRCol                          ; generate random number between 0 and 3 inclusive
     ld a, r
     and %00000001
-    cp 2
-    jp nc, tryAnotherRCol               ; loop when nc flag set ie not less than 4 again
-    ; a now contains random number
+    ; a now contains random number zero or one
     ret
 
 

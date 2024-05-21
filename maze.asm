@@ -170,6 +170,23 @@ Line1:          DB $00,$0a                    ; Line 10
 Line1Text:      DB $ea                        ; REM
 
 start
+
+introWaitLoop
+	ld b,64
+introWaitLoop_1
+    push bc
+    pop bc
+	djnz introWaitLoop_1
+    jp read_start_key     ;; have to have 2 labels as not a call return
+
+read_start_key
+	ld a, KEYBOARD_READ_PORT_A_TO_G
+	in a, (KEYBOARD_READ_PORT)					; read from io port
+	bit 1, a									; check S key pressed
+	jp nz, introWaitLoop
+    jr preinit  ; not really necessary
+
+preinit
     ld a, 20
     ld (genRow), a
     ld a, 1
@@ -199,8 +216,7 @@ genLoop
     cp 0
 
     jp z, setBlankAbove
-
-    ;; set the column to the right blank
+    ;; else the column to the right blank
     ld a, (genCol)
     inc a
     ld c, a
@@ -222,19 +238,26 @@ setBlankAbove
     ld a,0
     call PRINT
 
-        ;; now set block immeditely to the right to blank
-    ;ld a, (genCol)
-    ;inc a
-    ;ld (genCol),a
-    ;ld c, a
-    ;ld a, (genRow)
-    ;ld b, a
-    ;call PRINTAT		; ROM routine to set current cursor position, from row b and column e
-    ;ld a,0
-    ;call PRINT
-    ;ld a, (genCol)
-    ;inc a          ; skip to next column
-    ;ld (genCol), a ; store the next column on
+    ; in this case sometimes set the row above that to blank (to avoid having closed loops)
+    ;; only do this if we're 3 away from top row
+    call setRandomNumberZeroOne
+    cp 1
+    jp z, checkGenColRow
+
+    ld a,(genRow)
+    cp 3
+    jp z, checkGenColRow
+    cp 4
+    jp z, checkGenColRow
+    dec a
+    dec a
+    ld b, a
+    ld a, (genCol)	 ; col set for PRINTAT
+    ld c, a
+    call PRINTAT		; ROM routine to set current cursor position, from row b and column e
+    ld a,0
+    call PRINT
+
 
 checkGenColRow
     ld a, (genCol)
@@ -261,6 +284,17 @@ resetGenColAndDec
     ld (genRow),a
     jp genLoop
 endOfGen
+
+    ; now set the entry point to the maze row 21
+    ;; we want to set the current location to blank
+    ld a, 0
+    ld c, a  ; col for PRINTAT
+    ld a, 20 ; row set for PRINTAT
+    ld b, a
+    call PRINTAT		; ROM routine to set current cursor position, from row b and column e
+    ld a,0
+    call PRINT
+
     ret
 
 
