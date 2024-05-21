@@ -20,7 +20,6 @@
 
 
 
-
 setRandomNumberZeroOne
 tryAnotherRCol                          ; generate random number between 0 and 3 inclusive
     ld a, r

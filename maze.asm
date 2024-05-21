@@ -170,70 +170,117 @@ Line1:          DB $00,$0a                    ; Line 10
 Line1Text:      DB $ea                        ; REM
 
 start
-    ld a, 21
+    ld a, 20
     ld (genRow), a
-    ld a, 0
+    ld a, 1
     ld (genCol), a
 
 	call CLS  ; clears screen and sets the boarder
     ld bc, 1
     ld de, MAZE_TEXT
     call printstring
+    call fillScreenBlack
+
 genLoop
     ; using the binary tree method
     ; we start maze gen in the bottom left corner
 
-    ;generate a random number zero or one
-    call setRandomNumberZeroOne
-    cp 1
-
-    jp z, skipSetBlankAbove
-
+    ;; we want to set the current location to blank
     ld a, (genCol)
-    inc a
     ld c, a
     ld a, (genRow)	 ; col set for PRINTAT
     ld b, a
     call PRINTAT		; ROM routine to set current cursor position, from row b and column e
-    ld a,7
+    ld a,0
     call PRINT
+
+    ;generate a random number zero or one
+    call setRandomNumberZeroOne
+    cp 0
+
+    jp z, setBlankAbove
+
+    ;; set the column to the right blank
+    ld a, (genCol)
+    inc a
+    ld c, a
+    ld a, (genRow)
+    ld b, a
+    call PRINTAT		; ROM routine to set current cursor position, from row b and column e
+    ld a,0
+    call PRINT
+
     jr checkGenColRow
 
-skipSetBlankAbove
+setBlankAbove
     ld a,(genRow)
     dec a
     ld b, a
     ld a, (genCol)	 ; col set for PRINTAT
     ld c, a
     call PRINTAT		; ROM routine to set current cursor position, from row b and column e
-    ld a,128
+    ld a,0
     call PRINT
-    ld a,(genRow)
-    ld b, a
-    ld a, (genCol)
-    inc a
-    ld c, a
-    call PRINTAT		; ROM routine to set current cursor position, from row b and column e
-    ld a,8
-    call PRINT
+
+        ;; now set block immeditely to the right to blank
+    ;ld a, (genCol)
+    ;inc a
+    ;ld (genCol),a
+    ;ld c, a
+    ;ld a, (genRow)
+    ;ld b, a
+    ;call PRINTAT		; ROM routine to set current cursor position, from row b and column e
+    ;ld a,0
+    ;call PRINT
+    ;ld a, (genCol)
+    ;inc a          ; skip to next column
+    ;ld (genCol), a ; store the next column on
 
 checkGenColRow
     ld a, (genCol)
+    inc a          ; skip to next column
     inc a
+    ld (genCol), a ; store the next column on
+
     cp 31
+    jr z, resetGenColAndDec
+    cp 32
     jr z, resetGenColAndDec
     ld (genCol),a
     jp genLoop
 resetGenColAndDec
-    ld a, 0
+    ld a, 1
     ld (genCol),a
     ld a,(genRow)
     dec a
+    dec a    ; jump 2 row up as we only set as if a grid not every row
+    cp 0
+    jr z, endOfGen
     cp 1
     jr z, endOfGen
     ld (genRow),a
     jp genLoop
 endOfGen
+    ret
+
+
+
+fillScreenBlack
+    ld hl,Display+1
+    ld de, 33
+    add hl, de
+    ld a, 128
+    ld b, 21
+rowLoop
+    push bc
+    ld b, 32
+colLoop
+    ld (hl),a
+    inc hl
+    djnz colLoop
+    inc hl
+    pop bc
+    djnz rowLoop
     ret
 
 INCLUDE commonUtils.asm
