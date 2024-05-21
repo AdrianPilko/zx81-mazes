@@ -27,6 +27,16 @@ tryAnotherRCol                          ; generate random number between 0 and 3
     ; a now contains random number zero or one
     ret
 
+waitABit
+	ld b,128
+waitABit_WaitLoop_1
+    push bc
+    ld b, 222
+waitABit_WaitLoop_2
+    djnz waitABit_WaitLoop_2
+    pop bc
+	djnz waitABit_WaitLoop_1
+    ret
 
 ; this prints at to any offset (stored in bc) from the top of the screen Display, using string in de
 printstring
