@@ -196,7 +196,7 @@ preinit
     ld bc, 1
     ld de, MAZE_TEXT
     call printstring
-    ;call fillScreenBlack
+    call fillScreenBlack
 
 genLoop
     ld b,VSYNCLOOP
@@ -331,7 +331,7 @@ colLoop
 
 copyFromScrBuffToDisplayMem
 	ld b, 21
-	ld hl, mazeScreenBuffer  ; has to be 32 * 21 
+	ld hl, mazeScreenBuffer  ; has to be 32 * 21
 	ld de, Display+34
 copyScrBuffLoop
     push bc
@@ -341,7 +341,7 @@ copyScrBuffLoop
 	pop bc
 	djnz copyScrBuffLoop
 	ret
-	
+
 
 
 INCLUDE commonUtils.asm
@@ -394,7 +394,7 @@ mazeVisitedLocations
     DS 32*21, 0
 mazeScreenBuffer
     DS 32*21, 8
-	
+
 testSring
     DB _H,_E,_L,_L,_O,_CM,__,_W,_O,_R,_L,_D,$ff
 MAZE_TEXT
