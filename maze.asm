@@ -55,7 +55,7 @@ PIRATE_START_POS EQU 36
 LEVEL_COUNT_DOWN_INIT EQU 4
 LEV_COUNTDOWN_TO_INVOKE_BOSS EQU 1
 
-VSYNCLOOP       EQU      2
+VSYNCLOOP       EQU      1
 
 ; character set definition/helpers
 __:				EQU	$00	;spacja
@@ -196,9 +196,19 @@ preinit
     ld bc, 1
     ld de, MAZE_TEXT
     call printstring
-    call fillScreenBlack
+    ;call fillScreenBlack
 
 genLoop
+    ld b,VSYNCLOOP
+waitForTVSync
+    call vsync
+    djnz waitForTVSync
+
+
+	;call copyFromScrBuffToDisplayMem
+	;ret
+
+
     ; using the binary tree method
     ; we start maze gen in the bottom left corner
 
@@ -245,10 +255,11 @@ setBlankAbove
     jp z, checkGenColRow
 
     ld a,(genRow)
-    cp 1
+    cp 3
     jp z, checkGenColRow
-    cp 2
+    cp 4
     jp z, checkGenColRow
+    dec a
     dec a
     ld b, a
     ld a, (genCol)	 ; col set for PRINTAT
@@ -318,6 +329,21 @@ colLoop
     djnz rowLoop
     ret
 
+copyFromScrBuffToDisplayMem
+	ld b, 21
+	ld hl, mazeScreenBuffer  ; has to be 32 * 21 
+	ld de, Display+34
+copyScrBuffLoop
+    push bc
+	ld bc, 32
+	ldir
+	inc de ; inc de to next line because of $76 at end of line
+	pop bc
+	djnz copyScrBuffLoop
+	ret
+	
+
+
 INCLUDE commonUtils.asm
 
                 DB $76                        ; Newline
@@ -366,6 +392,9 @@ genRow
     DB 0
 mazeVisitedLocations
     DS 32*21, 0
+mazeScreenBuffer
+    DS 32*21, 8
+	
 testSring
     DB _H,_E,_L,_L,_O,_CM,__,_W,_O,_R,_L,_D,$ff
 MAZE_TEXT
