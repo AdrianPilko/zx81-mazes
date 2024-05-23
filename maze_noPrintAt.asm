@@ -177,7 +177,18 @@ introWaitLoop_1
     push bc
     pop bc
 	djnz introWaitLoop_1
-    jp read_start_key     ;; have to have 2 labels as not a call return
+	
+   	ld hl, (randomSeed)  ; attempt to set random seed based on time user takes to press start
+	inc hl
+	ld a, $1f   ; we want a random seed index into the ROM which is 8Kbytes or zero to 8191 = 1f00 hex 
+	cp h
+	jr z, resetRandSeed_1
+	ld (randomSeed),hl
+	jp read_start_key
+resetRandSeed_1
+    ld hl, 0
+	ld (randomSeed), hl
+	jp read_start_key     ;; have to have 2 labels as not a call return
 
 read_start_key
 	ld a, KEYBOARD_READ_PORT_A_TO_G
@@ -211,8 +222,9 @@ genLoop
 
 
     ;generate a random number zero or one
+	push hl
     call setRandomNumberZeroOne
-    call setRandomNumberZeroOne
+	pop hl
     cp 1
 
     jp z, setBlankBelow
@@ -263,7 +275,7 @@ addRow
 	pop hl
 
 skipAddRow
-	; ceck fi we've done whole lot
+	; ceck if we've done whole lot
 	ld a, $02     ;; 32 * 21 = 672 decimal = $02a0
 	cp b
 	jp nz, genLoop
@@ -298,9 +310,9 @@ waitForTVSync
     ld a,0
     call PRINT
 
-    ;call waitABit
-    ;call waitABit
-    ;jp preinit
+    call waitABit
+    call waitABit
+    jp preinit
     jp introWaitLoop
     ret
 
@@ -398,6 +410,8 @@ Display        	DB $76
 Variables
 colCount
     DB 0
+randomSeed
+    DW 0
 mazeVisitedLocations
     DS 32*21, 0
 mazeScreenBuffer

@@ -269,13 +269,13 @@ setBlankAbove
     ;; only do this if we're 3 away from top row
     call setRandomNumberZeroOne
     cp 1
-    jp z, checkGenColRow
+    jr z, checkGenColRow
 
     ld a,(genRow)
     cp 1
-    jp z, checkGenColRow
+    jr z, checkGenColRow
     cp 2
-    jp z, checkGenColRow
+    jr z, checkGenColRow
     dec a
     dec a
     ld b, a
