@@ -28,7 +28,7 @@ setRandomNumberZeroOne
 	cp h
 	jr z, resetRandSeed_2
 	ld (randomSeed),hl
-	jp endOfUpdateRandomSeed
+	jr endOfUpdateRandomSeed
 resetRandSeed_2
     ld hl, 0
 	ld (randomSeed), hl
