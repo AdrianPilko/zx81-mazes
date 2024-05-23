@@ -192,7 +192,7 @@ preinit
     ld a, 1
     ld (genCol), a
 
-	call CLS  ; clears screen and sets the boarder
+	;call CLS  ; clears screen and sets the boarder
     ld bc, 1
     ld de, MAZE_TEXT
     call printstring
@@ -398,7 +398,7 @@ mazeScreenBuffer
 testSring
     DB _H,_E,_L,_L,_O,_CM,__,_W,_O,_R,_L,_D,$ff
 MAZE_TEXT
-    DB _M,_A,_Z,_E,__,_G,_E,_N,_E,_R,_A,_T,_I,_O,_N,__,_B,_Y,_T,_E,_F,_O,_R,_E,_V,_E,_R,$FF
+    DB _M,_A,_Z,_E,__,_G,_E,_N,_E,_R,_A,_T,_I,_O,_N,__,_B,_Y,_T,_E,_F,_O,_R,_E,_V,_E,_R,__,_V,_0,_DT,_2,$FF
 
 VariablesEnd:   DB $80
 BasicEnd:
