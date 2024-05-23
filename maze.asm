@@ -169,7 +169,10 @@ Line1:          DB $00,$0a                    ; Line 10
                 DW Line1End-Line1Text         ; Line 10 length
 Line1Text:      DB $ea                        ; REM
 
+
 start
+
+;call fillScreenBlack
 
 introWaitLoop
 	ld b,64
@@ -177,13 +180,25 @@ introWaitLoop_1
     push bc
     pop bc
 	djnz introWaitLoop_1
-    jp read_start_key     ;; have to have 2 labels as not a call return
+
+   	ld hl, (randomSeed)  ; attempt to set random seed based on time user takes to press start
+	inc hl
+	ld a, $1f   ; we want a random seed index into the ROM which is 8Kbytes or zero to 8191 = 1f00 hex 
+	cp h
+	jr z, resetRandSeed_1
+	ld (randomSeed),hl
+	jp read_start_key
+resetRandSeed_1
+    ld hl, 0
+	ld (randomSeed), hl
+	jp read_start_key     ;; have to have 2 labels as not a call return
 
 read_start_key
 	ld a, KEYBOARD_READ_PORT_A_TO_G
 	in a, (KEYBOARD_READ_PORT)					; read from io port
 	bit 1, a									; check S key pressed
 	jp nz, introWaitLoop
+
     jr preinit  ; not really necessary
 
 preinit
@@ -222,7 +237,9 @@ waitForTVSync
     call PRINT
 
     ;generate a random number zero or one
+	ld hl, (randomSeed)
     call setRandomNumberZeroOne
+	ld (randomSeed), hl
     cp 0
 
     jp z, setBlankAbove
@@ -255,9 +272,9 @@ setBlankAbove
     jp z, checkGenColRow
 
     ld a,(genRow)
-    cp 3
+    cp 1
     jp z, checkGenColRow
-    cp 4
+    cp 2
     jp z, checkGenColRow
     dec a
     dec a
@@ -394,7 +411,8 @@ mazeVisitedLocations
     DS 32*21, 0
 mazeScreenBuffer
     DS 32*21, 8
-
+randomSeed
+    DW 0
 testSring
     DB _H,_E,_L,_L,_O,_CM,__,_W,_O,_R,_L,_D,$ff
 MAZE_TEXT

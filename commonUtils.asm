@@ -21,8 +21,20 @@
 
 
 setRandomNumberZeroOne
-tryAnotherRCol                          ; generate random number between 0 and 3 inclusive
-    ld a, r
+
+   	ld hl, (randomSeed)  ; attempt to set random seed based on time user takes to press start
+	inc hl
+	ld a, $1f   ; we want a random seed index into the ROM which is 8Kbytes or zero to 8191 = 1f00 hex 
+	cp h
+	jr z, resetRandSeed_2
+	ld (randomSeed),hl
+	jp endOfUpdateRandomSeed
+resetRandSeed_2
+    ld hl, 0
+	ld (randomSeed), hl
+endOfUpdateRandomSeed
+	
+    ld a, (hl)
     and %00000001
     ; a now contains random number zero or one
     ret
