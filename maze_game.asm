@@ -60,6 +60,7 @@ __:				EQU	$00	;spacja
 _QT:			EQU	$0B	;"
 _PD:			EQU	$0C	;funt
 _SD:			EQU	$0D	;$
+_DOLLAR:        EQU	$0D	;$
 _CL:			EQU	$0E	;:
 _QM:			EQU	$0F	;?
 _OP:			EQU	$10	;(
@@ -285,7 +286,7 @@ moveLeft
 	jp z, gameLoop
 	cp 8 ; exit found
 	jp z, gameWon
-	cp _AS
+	cp _DOLLAR
 	push hl
 	call z, increaseScore
 	pop hl
@@ -302,7 +303,7 @@ moveRight
 	jp z, gameLoop
 	cp 8 ; exit found
 	jp z, gameWon
-	cp _AS
+	cp _DOLLAR
 	push hl
 	call z, increaseScore
 	pop hl
@@ -320,7 +321,7 @@ moveUp
 	jp z, gameLoop
 	cp 8 ; exit found
 	jp z, gameWon
-	cp _AS
+	cp _DOLLAR
 	push hl
 	call z, increaseScore
 	pop hl
@@ -338,7 +339,7 @@ moveDown
 	jp z, gameLoop
 	cp 8 ; exit found
 	jp z, gameWon
-	cp _AS
+	cp _DOLLAR
 	push hl
 	call z, increaseScore
 	pop hl
@@ -417,7 +418,7 @@ setBlankAbove
     ld a, (genCol)	 ; col set for PRINTAT
     ld c, a
     call PRINTAT		; ROM routine to set current cursor position, from row b and column e
-    ld a,_AS
+    ld a,_DOLLAR
     call PRINT
 
 
