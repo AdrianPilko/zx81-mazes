@@ -172,7 +172,7 @@ start
     xor a
     ld a, (score_mem_tens)
     ld a, (score_mem_hund)
-    
+
 introWaitLoop
 	ld b,64
 introWaitLoop_1
@@ -182,7 +182,7 @@ introWaitLoop_1
 
    	ld hl, (randomSeed)  ; attempt to set random seed based on time user takes to press start
 	inc hl
-	ld a, $1f   ; we want a random seed index into the ROM which is 8Kbytes or zero to 8191 = 1f00 hex 
+	ld a, $1f   ; we want a random seed index into the ROM which is 8Kbytes or zero to 8191 = 1f00 hex
 	cp h
 	jr z, resetRandSeed_1
 	ld (randomSeed),hl
@@ -212,20 +212,20 @@ preinit
     call printstring
     call fillScreenBlack
 	call generateMaze
-	
+
 	ld de, 661
     ld hl, Display+1
     add hl, de
 	ld a, _INV_A
 	ld (hl),a
 	ld (playerAbsAddress),hl
-	
+
 	ld de, 62   ; exit location
 	ld hl, Display+1
 	add hl, de
 	ld a, 8
 	ld (hl),a
-	
+
 gameLoop
     ld b,VSYNCLOOP
 waitForTVSync
@@ -238,7 +238,7 @@ waitForTVSync
 	push hl
 		call printLivesAndScore
 	pop hl
-	
+
 ; keyboard layout for reading keys on ZX81
 ; BIT   left block      right block  BIT
 ; off                                off in <port>, when ld a, <port>
@@ -273,7 +273,7 @@ waitForTVSync
 
     ld a, KEYBOARD_READ_PORT_A_TO_G
     in a, (KEYBOARD_READ_PORT)					; read from io port
-    bit 0, a						    ; A   
+    bit 0, a						    ; A
     jp z, moveDown
 	jp gameLoop
 moveLeft
@@ -348,9 +348,16 @@ moveDown
     jp gameLoop
 gameWon
     call increaseScore
-    ld bc, 402
-    ld de, YOU_WON_TEXT
+    ld bc, 308
+    ld de, YOU_WON_TEXT_0
     call printstring
+    ld bc, 341
+    ld de, YOU_WON_TEXT_1
+    call printstring
+    ld bc, 374
+    ld de, YOU_WON_TEXT_2
+    call printstring
+
 	call waitABit
 	call waitABit
 	call waitABit
@@ -543,7 +550,7 @@ printLivesAndScore
     ;call print_number8bits
 
     ret
-	
+
 copyFromScrBuffToDisplayMem
 	ld b, 21
 	ld hl, mazeScreenBuffer  ; has to be 32 * 21
@@ -623,7 +630,7 @@ YOU_WON_TEXT_0
 YOU_WON_TEXT_1
     DB 5,_Y,_O,_U,__,_E,_S,_C,_A,_P,_E,_D,_QM,133,$ff
 YOU_WON_TEXT_2
-    DB 130,3,3,3,3,3,3,3,3,3,3,3,3,129,$ff
+    DB 130,131,131,131,131,131,131,131,131,131,131,131,131,129,$ff
 
 MAZE_TEXT
     DB _M,_A,_Z,_E,_CL,_B,_Y,_T,_E,_F,_O,_R,_E,_V,_E,_R,__,_V,_0,_DT,_3,__,_S,_C,_O,_R,_E,_CL,$FF
