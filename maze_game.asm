@@ -244,11 +244,7 @@ waitForTVSync
        call updateEnemies
     
        ld hl, (enemyLocation)
-       ld a,_AS
-       ld (hl), a
-    
-       ld hl, (prevEnemyLocation)
-       xor a
+       ld a,139
        ld (hl), a
        call printLivesAndScore
     pop hl
@@ -637,6 +633,9 @@ copyScrBuffLoop
 updateEnemies
 ;; select a random new locaiton of the enemy
     ld hl, (enemyLocation)
+    xor a
+    ld (hl), a
+    
     call setRandomNumberFour
     cp 0
     jr z, moveEnLeft
@@ -785,7 +784,7 @@ randomSeed
 YOU_WON_TEXT_0
     DB 7,3,3,3,3,3,3,3,3,3,3,3,3,132,$ff
 YOU_LOST_TEXT_1
-    DB 5,_Y,_O,_U,__,_L,_O,_S,_E,_CL,_EQ,_CP,__,133,$ff
+    DB 5,_Y,_O,_U,__,_L,_O,_S,_E,_CL,_MI,_OP,__,133,$ff
 YOU_WON_TEXT_1
     DB 5,_Y,_O,_U,__,_E,_S,_C,_A,_P,_E,_D,_QM,133,$ff
 YOU_WON_TEXT_2
