@@ -238,10 +238,15 @@ waitForTVSync
 
     ;generate a random number zero or one
 	ld hl, (randomSeed)
+    ld a, (genRow)
+    cp 2
+	call z, setRightCellZero
+	ld a, (genRow)
+    cp 2
+	jp z, checkGenColRow
     call setRandomNumberZeroOne
 	ld (randomSeed), hl
     cp 0
-
     jp z, setBlankAbove
     ;; else the column to the right blank
     ld a, (genCol)
@@ -256,20 +261,14 @@ waitForTVSync
     jr checkGenColRow
 
 setBlankAbove
-    ld a,(genRow)
-    dec a
-    ld b, a
-    ld a, (genCol)	 ; col set for PRINTAT
-    ld c, a
-    call PRINTAT		; ROM routine to set current cursor position, from row b and column e
-    ld a,0
-    call PRINT
+    call setCellAboveBlank
 
     ; in this case sometimes set the row above that to blank (to avoid having closed loops)
     ;; only do this if we're 3 away from top row
     call setRandomNumberZeroOne
     cp 1
-    jr z, checkGenColRow
+    ;jr z, checkGenColRow
+	jr checkGenColRow
 
     ld a,(genRow)
     cp 1
@@ -292,9 +291,23 @@ checkGenColRow
     inc a
     ld (genCol), a ; store the next column on
 
-    cp 31
+;; we want to set the current location to blank
+    ld a, (genCol)
+    ld c, a
+    ld a, (genRow)	 ; col set for PRINTAT
+    ld b, a
+    call PRINTAT		; ROM routine to set current cursor position, from row b and column e
+    ld a,0
+    call PRINT
+    ld a, (genCol)  ; store the next column on
+    cp 29
+    call z, setCellAboveBlank ; here we have to set the wall above to blank
+    ld a, (genCol)  ; store the next column on
+	cp 29
+	jr z, resetGenColAndDec
+    cp 30
     jr z, resetGenColAndDec
-    cp 32
+    cp 31
     jr z, resetGenColAndDec
     ld (genCol),a
     jp genLoop
@@ -323,9 +336,31 @@ endOfGen
     call PRINT
 
     call waitABit
+	call waitABit
+	call waitABit
     jp preinit
     ret
 
+setCellAboveBlank
+    ld a,(genRow)
+    dec a
+    ld b, a
+    ld a, (genCol)	 ; col set for PRINTAT
+    ld c, a
+    call PRINTAT		; ROM routine to set current cursor position, from row b and column e
+    ld a,0
+    call PRINT
+    ret
+setRightCellZero
+    ld a,(genRow)
+    ld b, a
+    ld a, (genCol)	 ; col set for PRINTAT
+	inc a
+    ld c, a
+    call PRINTAT		; ROM routine to set current cursor position, from row b and column e
+    ld a,0
+    call PRINT
+    ret
 
 
 fillScreenBlack
