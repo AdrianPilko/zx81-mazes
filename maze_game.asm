@@ -169,9 +169,10 @@ Line1Text:      DB $ea                        ; REM
 
 
 start
-
-;call fillScreenBlack
-
+    xor a
+    ld a, (score_mem_tens)
+    ld a, (score_mem_hund)
+    
 introWaitLoop
 	ld b,64
 introWaitLoop_1
@@ -234,8 +235,10 @@ waitForTVSync
 	ld hl, (playerAbsAddress)
 	ld a, _INV_A
 	ld (hl),a
-
-
+	push hl
+		call printLivesAndScore
+	pop hl
+	
 ; keyboard layout for reading keys on ZX81
 ; BIT   left block      right block  BIT
 ; off                                off in <port>, when ld a, <port>
@@ -282,6 +285,10 @@ moveLeft
 	jp z, gameLoop
 	cp 8 ; exit found
 	jp z, gameWon
+	cp _AS
+	push hl
+	call z, increaseScore
+	pop hl
 	ld (playerAbsAddress), hl
 	ld hl,(prevPlayerAddress)
 	ld (hl), _DT
@@ -295,6 +302,10 @@ moveRight
 	jp z, gameLoop
 	cp 8 ; exit found
 	jp z, gameWon
+	cp _AS
+	push hl
+	call z, increaseScore
+	pop hl
 	ld (playerAbsAddress), hl
 	ld hl,(prevPlayerAddress)
 	ld (hl), _DT
@@ -309,6 +320,10 @@ moveUp
 	jp z, gameLoop
 	cp 8 ; exit found
 	jp z, gameWon
+	cp _AS
+	push hl
+	call z, increaseScore
+	pop hl
 	ld (playerAbsAddress), hl
 	ld hl,(prevPlayerAddress)
 	ld (hl), _DT
@@ -323,11 +338,16 @@ moveDown
 	jp z, gameLoop
 	cp 8 ; exit found
 	jp z, gameWon
+	cp _AS
+	push hl
+	call z, increaseScore
+	pop hl
 	ld (playerAbsAddress), hl
 	ld hl,(prevPlayerAddress)
 	ld (hl), _DT
     jp gameLoop
 gameWon
+    call increaseScore
     ld bc, 402
     ld de, YOU_WON_TEXT
     call printstring
@@ -381,21 +401,16 @@ setBlankAbove
     ;; only do this if we're 3 away from top row
     call setRandomNumberZeroOne
     cp 1
-    ;jr z, checkGenColRow
-	jr checkGenColRow
+    jr z, checkGenColRow
+	;jr checkGenColRow
 
+;; randomly add asterixes to collect
     ld a,(genRow)
-    cp 1
-    jr z, checkGenColRow
-    cp 2
-    jr z, checkGenColRow
-    dec a
-    dec a
     ld b, a
     ld a, (genCol)	 ; col set for PRINTAT
     ld c, a
     call PRINTAT		; ROM routine to set current cursor position, from row b and column e
-    ld a,0
+    ld a,_AS
     call PRINT
 
 
@@ -491,6 +506,44 @@ colLoop
     djnz rowLoop
     ret
 
+
+increaseScore
+    ld a,(score_mem_tens)				; add one to score, scoring is binary coded decimal (BCD)
+	add a,1
+	daa									; z80 daa instruction realigns for BCD after add or subtract
+	ld (score_mem_tens),a
+	cp 153
+	jr z, addOneToHund
+	jr skipAddHund
+addOneToHund
+	ld a, 0
+	ld (score_mem_tens), a
+    ld a, (score_mem_hund)
+	add a, 1
+	daa                                   ; z80 daa instruction realigns for BCD after add or subtract
+	ld (score_mem_hund), a
+skipAddHund
+	ret
+
+printLivesAndScore
+    ;ld a, (playerLives)
+    ;ld de, 29
+    ;call print_number8bits
+
+    ld bc, 31
+    ld de, score_mem_tens
+    call printNumber
+
+    ld bc, 29
+    ld de, score_mem_hund
+    call printNumber
+
+    ;ld a, (gameLevel)
+    ;ld de, 20
+    ;call print_number8bits
+
+    ret
+	
 copyFromScrBuffToDisplayMem
 	ld b, 21
 	ld hl, mazeScreenBuffer  ; has to be 32 * 21
@@ -547,6 +600,10 @@ Display        	DB $76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
 
 Variables
+score_mem_tens
+    DB 0
+score_mem_hund
+    DB 0
 prevPlayerAddress
     DW 0
 playerAbsAddress
@@ -561,8 +618,13 @@ mazeScreenBuffer
     DS 32*21, 8
 randomSeed
     DW 0
-YOU_WON_TEXT
-    DB _Y,_O,_U,__,_E,_S,_C,_A,_P,_E,_D,_QM,$ff
+YOU_WON_TEXT_0
+    DB 7,3,3,3,3,3,3,3,3,3,3,3,3,132,$ff
+YOU_WON_TEXT_1
+    DB 5,_Y,_O,_U,__,_E,_S,_C,_A,_P,_E,_D,_QM,133,$ff
+YOU_WON_TEXT_2
+    DB 130,3,3,3,3,3,3,3,3,3,3,3,3,129,$ff
+
 MAZE_TEXT
     DB _M,_A,_Z,_E,_CL,_B,_Y,_T,_E,_F,_O,_R,_E,_V,_E,_R,__,_V,_0,_DT,_3,__,_S,_C,_O,_R,_E,_CL,$FF
 
