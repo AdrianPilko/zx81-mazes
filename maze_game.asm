@@ -212,20 +212,23 @@ preinit
     ld de, MAZE_TEXT
     call printstring
     call fillScreenBlack
-	call generateMaze
-
-	ld de, 661
+    call generateMaze
+    xor a
+    ld (enemyAddedFlag),a
+    
+    ld de, 661
     ld hl, Display+1
     add hl, de
-	ld a, _INV_A
-	ld (hl),a
-	ld (playerAbsAddress),hl
+    ld a, _INV_A
+    ld (hl),a
+    ld (playerAbsAddress),hl
 
-	ld de, 62   ; exit location
-	ld hl, Display+1
-	add hl, de
-	ld a, 8
-	ld (hl),a
+    ld de, 62   ; exit location
+    ld hl, Display+1
+    add hl, de
+    ld a, 8
+    ld (hl),a
+    
 
 gameLoop
     ld b,VSYNCLOOP
@@ -233,12 +236,22 @@ waitForTVSync
     call vsync
     djnz waitForTVSync
 
-	ld hl, (playerAbsAddress)
-	ld a, _INV_A
-	ld (hl),a
-	push hl
-		call printLivesAndScore
-	pop hl
+    ld hl, (playerAbsAddress)
+    ld a, _INV_A
+    ld (hl),a
+    
+    push hl
+       call updateEnemies
+    
+       ld hl, (enemyLocation)
+       ld a,_AS
+       ld (hl), a
+    
+       ld hl, (prevEnemyLocation)
+       xor a
+       ld (hl), a
+       call printLivesAndScore
+    pop hl
 
 ; keyboard layout for reading keys on ZX81
 ; BIT   left block      right block  BIT
@@ -359,12 +372,32 @@ gameWon
     ld de, YOU_WON_TEXT_2
     call printstring
 
-	call waitABit
-	call waitABit
-	call waitABit
-	call waitABit
-	jp preinit
+    call waitABit
+    call waitABit
+    call waitABit
+    call waitABit
+    jp preinit
     ret
+
+gameOver
+    ld bc, 308
+    ld de, YOU_WON_TEXT_0 ;; reuse boarder
+    call printstring
+    ld bc, 341
+    ld de, YOU_LOST_TEXT_1
+    call printstring
+    ld bc, 374
+    ld de, YOU_WON_TEXT_2
+    call printstring
+
+    call waitABit
+    call waitABit
+    call waitABit
+    call waitABit
+    pop bc ; maintain stack integrity as previous call no return
+    jp start
+    ret
+
 
 generateMaze
 ;; uses binary tree algorithm to generate a maze
@@ -379,15 +412,15 @@ genLoop
     call PRINT
 
     ;generate a random number zero or one
-	ld hl, (randomSeed)
+    ld hl, (randomSeed)
     ld a, (genRow)
     cp 2
-	call z, setRightCellZero
-	ld a, (genRow)
+    call z, setRightCellZero
+    ld a, (genRow)
     cp 2
-	jp z, checkGenColRow
+    jp z, checkGenColRow
     call setRandomNumberZeroOne
-	ld (randomSeed), hl
+    ld (randomSeed), hl
     cp 0
     jp z, setBlankAbove
     ;; else the column to the right blank
@@ -410,7 +443,6 @@ setBlankAbove
     call setRandomNumberZeroOne
     cp 1
     jr z, checkGenColRow
-	;jr checkGenColRow
 
 ;; randomly add asterixes to collect
     ld a,(genRow)
@@ -420,7 +452,43 @@ setBlankAbove
     call PRINTAT		; ROM routine to set current cursor position, from row b and column e
     ld a,_DOLLAR
     call PRINT
-
+    ld a, (enemyAddedFlag)
+    cp 1
+    jp z, checkGenColRow
+    ;; now randomly set enemies based on a 1/10 chance of the money set
+    call setRandomNumberOneInTen
+    cp 1
+    jp z, setEnemyPosition_1
+    jr checkGenColRow
+setEnemyPosition_1 ; compound 3 calls
+    call setRandomNumberOneInTen
+    cp 1
+    jp z, setEnemyPosition_2
+    jr checkGenColRow    
+setEnemyPosition_2
+    call setRandomNumberOneInTen
+    cp 1
+    jp z, setEnemyPosition_3
+    jr checkGenColRow    
+setEnemyPosition_3
+    ;; since we're (for other reasons) not using a memory address to set the maze
+    ;; we need to convert from row column to screen memory
+    
+    ld hl, Display+1
+    ld a,(genRow)
+    ld b, a
+    ld de, 33
+enemyAddLoop
+    add hl, de
+    djnz enemyAddLoop
+    ld de, 0
+    ld e, a
+    add hl, de
+    ld (enemyLocation), hl
+    ld a, _AS
+    ld (hl), a
+    ld a,1
+    ld (enemyAddedFlag),a
 
 checkGenColRow
     ld a, (genCol)
@@ -440,8 +508,8 @@ checkGenColRow
     cp 29
     call z, setCellAboveBlank ; here we have to set the wall above to blank
     ld a, (genCol)  ; store the next column on
-	cp 29
-	jr z, resetGenColAndDec
+    cp 29
+    jr z, resetGenColAndDec
     cp 30
     jr z, resetGenColAndDec
     cp 31
@@ -488,7 +556,7 @@ setRightCellZero
     ld a,(genRow)
     ld b, a
     ld a, (genCol)	 ; col set for PRINTAT
-	inc a
+    inc a
     ld c, a
     call PRINTAT		; ROM routine to set current cursor position, from row b and column e
     ld a,0
@@ -558,12 +626,94 @@ copyFromScrBuffToDisplayMem
 	ld de, Display+34
 copyScrBuffLoop
     push bc
-	ld bc, 32
-	ldir
-	inc de ; inc de to next line because of $76 at end of line
-	pop bc
-	djnz copyScrBuffLoop
-	ret
+    ld bc, 32
+    ldir
+    inc de ; inc de to next line because of $76 at end of line
+    pop bc
+    djnz copyScrBuffLoop
+    ret
+    
+    
+updateEnemies
+;; select a random new locaiton of the enemy
+    ld hl, (enemyLocation)
+    call setRandomNumberFour
+    cp 0
+    jr z, moveEnLeft
+    cp 1
+    jr z, moveEnRight
+    cp 2
+    jr z, moveEnUp
+    cp 3
+    jr z, moveEnDown
+    jp endOfUpdateEnemy
+        
+    
+moveEnLeft
+	ld (prevEnemyLocation),hl
+        ld hl, (enemyLocation)
+	dec hl
+	ld a, (hl)  ; check not a wall
+	cp 128
+	jp z, endOfUpdateEnemy
+	cp 8
+	jp z, endOfUpdateEnemy
+	cp _INV_A ; game over
+	jp z, gameOver
+	ld (enemyLocation), hl
+	ld hl,(prevEnemyLocation)
+	ld (hl), 0
+	jp endOfUpdateEnemy
+moveEnRight
+	ld (prevEnemyLocation),hl
+        ld hl, (enemyLocation)
+	inc hl
+	ld a, (hl)  ; check not a wall
+	cp 128
+	jp z, endOfUpdateEnemy
+	cp 8
+	jp z, endOfUpdateEnemy
+	cp _INV_A ; game over
+	jp z, gameOver
+	ld (enemyLocation), hl
+	ld hl,(prevEnemyLocation)
+	ld (hl), 0
+	jp endOfUpdateEnemy
+moveEnUp
+    	ld (prevEnemyLocation),hl
+        ld hl, (enemyLocation)
+	ld de, -33
+	add hl, de
+	ld a, (hl)  ; check not a wall
+	cp 128
+	jp z, endOfUpdateEnemy
+	cp 8
+	jp z, endOfUpdateEnemy
+	cp _INV_A ; game over
+	jp z, gameOver
+	ld (enemyLocation), hl
+	ld hl,(prevEnemyLocation)
+	ld (hl), 0
+	jp endOfUpdateEnemy
+moveEnDown
+    	ld (prevEnemyLocation),hl
+        ld hl, (enemyLocation)
+	ld de, -33
+	add hl, de
+	ld a, (hl)  ; check not a wall
+	cp 128
+	jp z, endOfUpdateEnemy
+	cp 8
+	jp z, endOfUpdateEnemy
+	cp _INV_A ; game over
+	jp z, gameOver
+	ld (enemyLocation), hl
+	ld hl,(prevEnemyLocation)
+	ld (hl), 0
+	jp endOfUpdateEnemy
+
+endOfUpdateEnemy
+    ret
 
 
 
@@ -594,7 +744,7 @@ Display        	DB $76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
                 DB  0, 0, 0, 0, 0, 0, 0, _P, _R, _E, _S, _S, 0, _S,0, _T, _O, 0, _S, _T, _A, _R, _T, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
-                DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
+                DB  0, 0, 0,0,0,_E, _N, _T, _E, _R, 0, _A, _N, 0, _E, _N, _D, _L, _E, _S, _S, 0, _M, _A, _Z, _E, 0, 0, 0, 0, 0, 0,$76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
@@ -615,7 +765,13 @@ score_mem_hund
 prevPlayerAddress
     DW 0
 playerAbsAddress
-	DW 0
+    DW 0
+enemyLocation
+    DW 0
+prevEnemyLocation
+    DW 0
+enemyAddedFlag
+    DB 0
 genCol
     DB 0
 genRow
@@ -628,13 +784,15 @@ randomSeed
     DW 0
 YOU_WON_TEXT_0
     DB 7,3,3,3,3,3,3,3,3,3,3,3,3,132,$ff
+YOU_LOST_TEXT_1
+    DB 5,_Y,_O,_U,__,_L,_O,_S,_E,_CL,_EQ,_CP,__,133,$ff
 YOU_WON_TEXT_1
     DB 5,_Y,_O,_U,__,_E,_S,_C,_A,_P,_E,_D,_QM,133,$ff
 YOU_WON_TEXT_2
     DB 130,131,131,131,131,131,131,131,131,131,131,131,131,129,$ff
 
 MAZE_TEXT
-    DB _M,_A,_Z,_E,_CL,_B,_Y,_T,_E,_F,_O,_R,_E,_V,_E,_R,__,_V,_0,_DT,_3,__,_S,_C,_O,_R,_E,_CL,$FF
+    DB _M,_A,_Z,_E,_CL,_B,_Y,_T,_E,_F,_O,_R,_E,_V,_E,_R,__,_V,_0,_DT,_4,__,_S,_C,_O,_R,_E,_CL,$FF
 
 VariablesEnd:   DB $80
 BasicEnd:

@@ -39,6 +39,66 @@ endOfUpdateRandomSeed
     ; a now contains random number zero or one
     ret
 
+setRandomNumberFour
+    ld hl, (randomSeed)  ; attempt to set random seed based on time user takes to press start
+    inc hl
+    ld a, $1f   ; we want a random seed index into the ROM which is 8Kbytes or zero to 8191 = 1f00 hex 
+    cp h
+    jr z, resetRandSeed_Four
+    ld (randomSeed),hl
+    jr endOfUpdateRand_Four
+resetRandSeed_Four
+    ld hl, 0
+    ld (randomSeed), hl
+endOfUpdateRand_Four
+
+    ld a, (hl)
+    and %00000011
+    ; a now contains random number 0,1,2,3
+    ret
+
+
+
+
+; chance of getting n 1's in a row is 0.5^n
+; so 0.1 = 0.5^n gives us n=(ln(0.1) / ln(0.5))
+; this is about 3.32 iterations
+
+setRandomNumberOneInTen
+    ;ld b, 3
+    ld b, 255 ; changed to make it less likely
+
+NInARow
+    dec b
+    ld a, b
+    cp 0
+    jr endOfOneInTenSetAOne
+   	ld hl, (randomSeed)  ; attempt to set random seed based on time user takes to press start
+	inc hl
+	ld a, $1f   ; we want a random seed index into the ROM which is 8Kbytes or zero to 8191 = 1f00 hex 
+	cp h
+	jr z, resetRandSeed_3
+	ld (randomSeed),hl
+	jr endOfUpdateRandomSeed_1
+resetRandSeed_3
+    ld hl, 0
+	ld (randomSeed), hl
+endOfUpdateRandomSeed_1
+	
+    ld a, (hl)
+    and %00000001
+    cp 1      ; try to get a 1 in ten by looping 4 times in a row if one every time
+    jr z, NInARow 
+    jr endOfOneInTenSetAZero
+endOfOneInTenSetAOne
+    ;; at this point we had enough 1's in a row
+    ld a, 1
+    ret
+endOfOneInTenSetAZero
+    ld a, 0
+    ret
+
+
 waitABit
 	ld b,128
 waitABit_WaitLoop_1
