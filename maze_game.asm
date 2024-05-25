@@ -693,18 +693,20 @@ updateEnemies
     ld (prevEnemyLocation),hl
    
     ld (hl), 0
-    ;ld a, 8
-    ;ld (hl),a
     push hl
-    call setRandomNumberFour
-    pop hl
+    call setRandomNumberFive
+    pop hl   ; skew to more up and left than the other directions
     cp 0
     jr z, moveEnLeft
     cp 1
     jr z, moveEnRight
     cp 2
-    jr z, moveEnUp
+    jr z, moveEnRight
     cp 3
+    jr z, moveEnUp
+    cp 4
+    jr z, moveEnUp
+    cp 5
     jr z, moveEnDown
     jp endOfUpdateEnemy
         

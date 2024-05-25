@@ -39,7 +39,7 @@ endOfUpdateRandomSeed
     ; a now contains random number zero or one
     ret
 
-setRandomNumberFour
+setRandomNumberFive
     ld hl, (randomSeed)  ; attempt to set random seed based on time user takes to press start
     inc hl
     ld a, $1f   ; we want a random seed index into the ROM which is 8Kbytes or zero to 8191 = 1f00 hex 
@@ -53,8 +53,8 @@ resetRandSeed_Four
 endOfUpdateRand_Four
 
     ld a, (hl)
-    and %00000011
-    ; a now contains random number 0,1,2,3
+    and %00000111
+    ; a now contains random number 0,1,2,3,4,5
     ret
 
 
