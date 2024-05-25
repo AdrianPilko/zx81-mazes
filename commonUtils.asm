@@ -138,7 +138,7 @@ print_number16bits    ; bc stores the 16bits, print b then c, de stores offset f
 
 
 print_number8bits
-    ld hl, (DF_CC)
+    ld hl, Display+1
     add hl, de
     push af ;store the original value of a for later
     and $f0 ; isolate the first digit

@@ -172,11 +172,30 @@ Line1Text:      DB $ea                        ; REM
 
 start
     call CLS
+    ld hl, Display+1
+    ld de, 71
+    add hl, de
+    ld b,22
+titleLoop1
+    ld (hl),_INV_QUOTES
+    inc hl
+    djnz titleLoop1
+        
 
     ld bc, 105
     ld de, START_GAME_TITLE
     call printstring
 
+
+    ld hl, Display+1
+    ld de, 137
+    add hl, de
+    ld b,22
+titleLoop2
+    ld (hl),_INV_QUOTES
+    inc hl
+    djnz titleLoop2
+        
    
     ld bc, 339
     ld de, START_TEXT1
@@ -202,11 +221,16 @@ start
     ld bc, 630
     ld de, START_GAME_CRED2
     call printstring
+
+
+    ld bc, 696
+    ld de, START_GAME_CRED3
+    call printstring
           
     xor a
-    ld a, (score_mem_tens)
-    ld a, (score_mem_hund)
-
+    ld (score_mem_tens),a
+    ld (score_mem_hund),a
+    ld (mazeCount),a
 introWaitLoop
 	ld b,64
 introWaitLoop_1
@@ -261,7 +285,6 @@ preinit
     add hl, de
     ld a, 8
     ld (hl),a
-    
 
 gameLoop
     ld b,VSYNCLOOP
@@ -401,6 +424,11 @@ gameWon
     ld de, YOU_WON_TEXT_2
     call printstring
 
+    ld a, (mazeCount)
+    inc a
+    daa
+    ld (mazeCount), a
+    
     call waitABit
     call waitABit
     call waitABit
@@ -630,9 +658,10 @@ skipAddHund
 	ret
 
 printLivesAndScore
-    ;ld a, (playerLives)
-    ;ld de, 29
-    ;call print_number8bits
+    push hl
+    ld a, (mazeCount)
+    ld de, 6
+    call print_number8bits
 
     ld bc, 31
     ld de, score_mem_tens
@@ -641,11 +670,7 @@ printLivesAndScore
     ld bc, 29
     ld de, score_mem_hund
     call printNumber
-
-    ;ld a, (gameLevel)
-    ;ld de, 20
-    ;call print_number8bits
-
+    pop hl
     ret
 
 copyFromScrBuffToDisplayMem
@@ -817,6 +842,8 @@ mazeScreenBuffer
     DS 32*21, 8
 randomSeed
     DW 0
+mazeCount
+    DB 0
 YOU_WON_TEXT_0
     DB 7,3,3,3,3,3,3,3,3,3,3,3,3,132,$ff
 YOU_LOST_TEXT_1
@@ -825,15 +852,16 @@ YOU_WON_TEXT_1
     DB 5,_Y,_O,_U,__,_E,_S,_C,_A,_P,_E,_D,_QM,133,$ff
 YOU_WON_TEXT_2
     DB 130,131,131,131,131,131,131,131,131,131,131,131,131,129,$ff
-
 MAZE_TEXT
     DB _M,_A,_Z,_E,_CL,0,0,0,0,0,0,0,0,0,0,0,0,0,_S,_C,_O,_R,_E,_CL,$FF
 START_GAME_TITLE
     DB 	139,139,139,139,139,0,_Z,_X,_8,_1,0,_M,_A,_Z,_E,_S,0,139,139,139,139,139,$ff
 START_GAME_CRED1
-   DB  139, 0, 139,0,0,0, _Y,_O,_U,_T,_U,_B,_E,_CL,0,_B,_Y,_T,_E,_F,_O,_R,_E,_V,_E,_R,0,0,0,139, 0, 139,$ff
+   DB  139, 0, 139,0,139,0, _Y,_O,_U,_T,_U,_B,_E,_CL,0,_B,_Y,_T,_E,_F,_O,_R,_E,_V,_E,_R,0,139,0,139, 0, 139,$ff
 START_GAME_CRED2  
-    DB 139,139,139,139,139,139,0,0,_V,_E,_R,_S,_I,_O,_N,0,_V,_0,_DT,_5,0,0,139,139,139,139,139,139,$ff
+    DB 139,0,139,0,_B,_Y,0,_A,0,_P,_I,_L,_K,_I,_N,_G,_T,_O,_N,0,_2,_0,_2,_4,0,139,0,139,$ff
+START_GAME_CRED3
+    DB 139,0,139,0,139,0,139,0,_V,_E,_R,_S,_I,_O,_N,0,_V,_0,_DT,_5,0,139,0,139,0,139,0,139,$ff
 START_TEXT1
     DB _P, _R, _E, _S, _S, 0, _S,0, _T, _O, 0, _S, _T, _A, _R, _T,$ff
 START_TEXT2
@@ -841,7 +869,7 @@ START_TEXT2
 START_TEXT3
     DB _K, _E, _Y, _S,_CL, $ff
 START_TEXT4
-    DB _Q, 0, _U, _P, 0, _A, 0, _D, _O, _W, _N, 0, _O, 0, _L, _E, _F,_T,0,_P,0,_R,_I,_G,_H,_T,$ff
+    DB _Q, 0, _U, _P, _CM,0, _A, 0, _D, _O, _W, _N, _CM,0, _O, 0, _L, _E, _F,_T,_CM,0,_P,0,_R,_I,_G,_H,_T,$ff
 VariablesEnd:   DB $80
 BasicEnd:
 
