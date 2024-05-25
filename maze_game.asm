@@ -115,6 +115,7 @@ _W				EQU $3C
 _X				EQU $3D
 _Y				EQU $3E
 _Z				EQU $3F
+_INV_QUOTES                     EQU $8B
 _INV_A          EQU $A6
 
 ;;;; this is the whole ZX81 runtime system and gets assembled and
@@ -170,6 +171,38 @@ Line1Text:      DB $ea                        ; REM
 
 
 start
+    call CLS
+
+    ld bc, 105
+    ld de, START_GAME_TITLE
+    call printstring
+
+   
+    ld bc, 339
+    ld de, START_TEXT1
+    call printstring
+
+    ld bc, 204
+    ld de, START_TEXT2
+    call printstring
+
+    ld bc, 432
+    ld de, START_TEXT3
+    call printstring
+
+    ld bc, 498
+    ld de, START_TEXT4
+    call printstring
+
+    ld bc, 562
+    ld de, START_GAME_CRED1
+    call printstring
+
+
+    ld bc, 630
+    ld de, START_GAME_CRED2
+    call printstring
+          
     xor a
     ld a, (score_mem_tens)
     ld a, (score_mem_hund)
@@ -244,7 +277,7 @@ waitForTVSync
        call updateEnemies
     
        ld hl, (enemyLocation)
-       ld a,139
+       ld a,_INV_QUOTES
        ld (hl), a
        call printLivesAndScore
     pop hl
@@ -392,7 +425,6 @@ gameOver
     call waitABit
     pop bc ; maintain stack integrity as previous call no return
     jp start
-    ret
 
 
 generateMaze
@@ -633,10 +665,14 @@ copyScrBuffLoop
 updateEnemies
 ;; select a random new locaiton of the enemy
     ld hl, (enemyLocation)
-    xor a
-    ld (hl), a
-    
+    ld (prevEnemyLocation),hl
+   
+    ld (hl), 0
+    ;ld a, 8
+    ;ld (hl),a
+    push hl
     call setRandomNumberFour
+    pop hl
     cp 0
     jr z, moveEnLeft
     cp 1
@@ -649,61 +685,61 @@ updateEnemies
         
     
 moveEnLeft
-	ld (prevEnemyLocation),hl
-        ld hl, (enemyLocation)
 	dec hl
 	ld a, (hl)  ; check not a wall
 	cp 128
-	jp z, endOfUpdateEnemy
+	jp z, moveRightAndInc ; if it isn't possible to move try different move untill it is!
 	cp 8
-	jp z, endOfUpdateEnemy
+	jp z, moveRightAndInc ; if it isn't possible to move try different move untill it is!
 	cp _INV_A ; game over
 	jp z, gameOver
 	ld (enemyLocation), hl
 	ld hl,(prevEnemyLocation)
 	ld (hl), 0
+	ret
 	jp endOfUpdateEnemy
+moveRightAndInc
+    inc hl   ; this undoes the inc before to maintain consistency
 moveEnRight
-	ld (prevEnemyLocation),hl
-        ld hl, (enemyLocation)
 	inc hl
 	ld a, (hl)  ; check not a wall
 	cp 128
-	jp z, endOfUpdateEnemy
+	jp z, moveUpAndDec ; if it isn't possible to move try different move untill it is!
 	cp 8
-	jp z, endOfUpdateEnemy
+	jp z, moveUpAndDec ; if it isn't possible to move try different move untill it is!
 	cp _INV_A ; game over
 	jp z, gameOver
 	ld (enemyLocation), hl
 	ld hl,(prevEnemyLocation)
 	ld (hl), 0
 	jp endOfUpdateEnemy
+moveUpAndDec
+    dec hl   ; this unodes the previous dec before to maintain consistency
 moveEnUp
-    	ld (prevEnemyLocation),hl
-        ld hl, (enemyLocation)
 	ld de, -33
 	add hl, de
 	ld a, (hl)  ; check not a wall
 	cp 128
-	jp z, endOfUpdateEnemy
+	jp z, moveDownAndAdd ; if it isn't possible to move try different move untill it is!
 	cp 8
-	jp z, endOfUpdateEnemy
+	jp z, moveDownAndAdd ; if it isn't possible to move try different move untill it is!
 	cp _INV_A ; game over
 	jp z, gameOver
 	ld (enemyLocation), hl
 	ld hl,(prevEnemyLocation)
 	ld (hl), 0
 	jp endOfUpdateEnemy
+moveDownAndAdd
+	ld de, 33
+	add hl, de
 moveEnDown
-    	ld (prevEnemyLocation),hl
-        ld hl, (enemyLocation)
-	ld de, -33
+	ld de, 33
 	add hl, de
 	ld a, (hl)  ; check not a wall
 	cp 128
-	jp z, endOfUpdateEnemy
+	jp z, endOfUpdateEnemy ; if it isn't possible to move try different move untill it is!
 	cp 8
-	jp z, endOfUpdateEnemy
+	jp z, endOfUpdateEnemy ; if it isn't possible to move try different move untill it is!
 	cp _INV_A ; game over
 	jp z, gameOver
 	ld (enemyLocation), hl
@@ -741,9 +777,9 @@ Display        	DB $76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
-                DB  0, 0, 0, 0, 0, 0, 0, _P, _R, _E, _S, _S, 0, _S,0, _T, _O, 0, _S, _T, _A, _R, _T, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
-                DB  0, 0, 0,0,0,_E, _N, _T, _E, _R, 0, _A, _N, 0, _E, _N, _D, _L, _E, _S, _S, 0, _M, _A, _Z, _E, 0, 0, 0, 0, 0, 0,$76
+                DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
+                DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
                 DB  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,$76
@@ -791,8 +827,21 @@ YOU_WON_TEXT_2
     DB 130,131,131,131,131,131,131,131,131,131,131,131,131,129,$ff
 
 MAZE_TEXT
-    DB _M,_A,_Z,_E,_CL,_B,_Y,_T,_E,_F,_O,_R,_E,_V,_E,_R,__,_V,_0,_DT,_4,__,_S,_C,_O,_R,_E,_CL,$FF
-
+    DB _M,_A,_Z,_E,_CL,0,0,0,0,0,0,0,0,0,0,0,0,0,_S,_C,_O,_R,_E,_CL,$FF
+START_GAME_TITLE
+    DB 	139,139,139,139,139,0,_Z,_X,_8,_1,0,_M,_A,_Z,_E,_S,0,139,139,139,139,139,$ff
+START_GAME_CRED1
+   DB  139, 0, 139,0,0,0, _Y,_O,_U,_T,_U,_B,_E,_CL,0,_B,_Y,_T,_E,_F,_O,_R,_E,_V,_E,_R,0,0,0,139, 0, 139,$ff
+START_GAME_CRED2  
+    DB 139,139,139,139,139,139,0,0,_V,_E,_R,_S,_I,_O,_N,0,_V,_0,_DT,_5,0,0,139,139,139,139,139,139,$ff
+START_TEXT1
+    DB _P, _R, _E, _S, _S, 0, _S,0, _T, _O, 0, _S, _T, _A, _R, _T,$ff
+START_TEXT2
+    DB _E, _N, _T, _E, _R, _CM,0, _A, _N, 0, _E, _N, _D, _L, _E, _S, _S, 0, _M, _A, _Z, _E,$ff
+START_TEXT3
+    DB _K, _E, _Y, _S,_CL, $ff
+START_TEXT4
+    DB _Q, 0, _U, _P, 0, _A, 0, _D, _O, _W, _N, 0, _O, 0, _L, _E, _F,_T,0,_P,0,_R,_I,_G,_H,_T,$ff
 VariablesEnd:   DB $80
 BasicEnd:
 
