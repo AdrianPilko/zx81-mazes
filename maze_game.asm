@@ -318,14 +318,16 @@ preinit
     ld (currentDollarCount), a
 
 gameLoop
-    ld b,VSYNCLOOP
-waitForTVSync
-    call vsync
-    djnz waitForTVSync
 
     ld hl, (playerAbsAddress)
     ld a, _INV_A
     ld (hl),a
+
+	ld b,VSYNCLOOP
+waitForTVSync
+    call vsync
+    djnz waitForTVSync
+
     
     push hl
        call updateEnemies
@@ -714,7 +716,7 @@ skipAddHund
     cp 10
     jr z, openDoor
     ld (currentDollarCount),a 
-    jr increaseScoreEnd
+    jr checkHighScore
 openDoor 
     ld de, _DOOR_OFFSET   ; exit location
     ld hl, Display+1
@@ -722,7 +724,7 @@ openDoor
     ld a, _DOOR_OPEN_CHARACTER
     ld (hl),a
 
-
+checkHighScore
 ; compare with high score and set that if higher
 
     ld a, (score_mem_hund)
