@@ -1012,7 +1012,7 @@ START_GAME_CRED1
 START_GAME_CRED2  
     DB 139,_INV_A,139,0,_B,_Y,0,_A,0,_P,_I,_L,_K,_I,_N,_G,_T,_O,_N,0,_2,_0,_2,_4,0,139,_INV_A,139,$ff
 START_GAME_CRED3
-    DB 139,_INV_A,139,_INV_A,139,_INV_A,139,0,_V,_E,_R,_S,_I,_O,_N,0,_V,_0,_DT,_6,0,139,_INV_A,139,_INV_A,139,_INV_A,139,$ff
+    DB 139,_INV_A,139,_INV_A,139,_INV_A,139,0,_V,_E,_R,_S,_I,_O,_N,0,_V,_0,_DT,_7,0,139,_INV_A,139,_INV_A,139,_INV_A,139,$ff
 START_TEXT2
     DB _E, _N, _T, _E, _R, _CM,0, _A, _N, 0, _E, _N, _D, _L, _E, _S, _S, 0, _M, _A, _Z, _E,$ff
 START_TEXT_TIP_1
