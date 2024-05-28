@@ -1018,7 +1018,7 @@ START_GAME_CRED3
 START_TEXT2
     DB _E, _N, _T, _E, _R, _CM,0, _A, _N, 0, _E, _N, _D, _L, _E, _S, _S, 0, _M, _A, _Z, _E,$ff
 START_TEXT_TIP_1
-    DB _D,_O,_O,_R,_S,0,_O,_P,_E,_N,_S,0,_A,_F,_T,_E,_R,0,_T,_E,_N,0,_D,_O,_L,_L,_A,_R,_S,$ff
+    DB _D,_O,_O,_R,0,0,_O,_P,_E,_N,_S,0,_A,_F,_T,_E,_R,0,_T,_E,_N,0,_D,_O,_L,_L,_A,_R,_S,$ff
 START_TEXT_TIP_2
     DB _I,_F,0,_E,_N,_E,_M,_Y,0,_E,_A,_T,_S,0,_DT,0,_S,_C,_O,_R,_E,0,_R,_E,_D,_U,_C,_E,_S,$ff
 START_TEXT3
