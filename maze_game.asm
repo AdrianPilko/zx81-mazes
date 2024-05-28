@@ -118,6 +118,9 @@ _Z				EQU $3F
 _INV_QUOTES                     EQU $8B
 _INV_A          EQU $A6
 
+_DOOR_OPEN_CHARACTER          EQU $08    ; grey block
+_DOOR_LOCKED_CHARACTER            EQU $b1      ; inverse L
+_DOOR_OFFSET                    EQU 62 
 ;;;; this is the whole ZX81 runtime system and gets assembled and
 ;;;; loads as it would if we just powered/booted into basic
 
@@ -196,15 +199,19 @@ titleLoop2
     inc hl
     djnz titleLoop2
         
-   
-    ld bc, 339
-    ld de, START_TEXT1
-    call printstring
 
     ld bc, 204
     ld de, START_TEXT2
     call printstring
 
+    ld bc, 234
+    ld de, START_TEXT_TIP_1
+    call printstring
+
+    ld bc, 267
+    ld de, START_TEXT_TIP_2
+    call printstring
+    
     ld bc, 432
     ld de, START_TEXT3
     call printstring
@@ -280,11 +287,15 @@ preinit
     ld (hl),a
     ld (playerAbsAddress),hl
 
-    ld de, 62   ; exit location
+    ; initially the exit is set to a locked state, player has to get at least 10 dollars to 
+    ; unlock the door (ie change it to a grey block
+    ld de, _DOOR_OFFSET   ; exit location
     ld hl, Display+1
     add hl, de
-    ld a, 8
+    ld a, _DOOR_LOCKED_CHARACTER
     ld (hl),a
+    xor a
+    ld (currentDollarCount), a
 
 gameLoop
     ld b,VSYNCLOOP
@@ -349,8 +360,10 @@ moveLeft
 	ld a, (hl)  ; check not a wall
 	cp 128
 	jp z, gameLoop
-	cp 8 ; exit found
+	cp _DOOR_OPEN_CHARACTER ; exit found
 	jp z, gameWon
+	cp _DOOR_LOCKED_CHARACTER ; exit locked
+	jp z, gameLoop
 	cp _DOLLAR
 	push hl
 	call z, increaseScore
@@ -366,8 +379,10 @@ moveRight
 	ld a, (hl)  ; check not a wall
 	cp 128
 	jp z, gameLoop
-	cp 8 ; exit found
+	cp _DOOR_OPEN_CHARACTER ; exit found
 	jp z, gameWon
+	cp _DOOR_LOCKED_CHARACTER ; exit locked
+	jp z, gameLoop
 	cp _DOLLAR
 	push hl
 	call z, increaseScore
@@ -384,8 +399,10 @@ moveUp
 	ld a, (hl)  ; check not a wall
 	cp 128
 	jp z, gameLoop
-	cp 8 ; exit found
+	cp _DOOR_OPEN_CHARACTER ; exit found
 	jp z, gameWon
+	cp _DOOR_LOCKED_CHARACTER ; exit locked
+	jp z, gameLoop
 	cp _DOLLAR
 	push hl
 	call z, increaseScore
@@ -402,8 +419,10 @@ moveDown
 	ld a, (hl)  ; check not a wall
 	cp 128
 	jp z, gameLoop
-	cp 8 ; exit found
+	cp _DOOR_OPEN_CHARACTER ; exit found
 	jp z, gameWon
+	cp _DOOR_LOCKED_CHARACTER ; exit locked
+	jp z, gameLoop	
 	cp _DOLLAR
 	push hl
 	call z, increaseScore
@@ -413,7 +432,6 @@ moveDown
 	ld (hl), _DT
     jp gameLoop
 gameWon
-    call increaseScore
     ld bc, 308
     ld de, YOU_WON_TEXT_0
     call printstring
@@ -446,6 +464,8 @@ gameOver
     ld bc, 374
     ld de, YOU_WON_TEXT_2
     call printstring
+    xor a
+    ld (currentDollarCount), a
 
     call waitABit
     call waitABit
@@ -500,7 +520,6 @@ setBlankAbove
     cp 1
     jr z, checkGenColRow
 
-;; randomly add asterixes to collect
     ld a,(genRow)
     ld b, a
     ld a, (genCol)	 ; col set for PRINTAT
@@ -512,6 +531,17 @@ setBlankAbove
     cp 1
     jp z, checkGenColRow
     ;; now randomly set enemies based on a 1/10 chance of the money set
+    ;; only do this if near the middle of maze
+    ld a,(genRow)
+    cp 10
+    jp z, tryAddEnemy
+    cp 11
+    jp z, tryAddEnemy
+    cp 12
+    jp z, tryAddEnemy
+    jp checkGenColRow
+
+tryAddEnemy
     call setRandomNumberOneInTen
     cp 1
     jp z, setEnemyPosition_1
@@ -541,7 +571,7 @@ enemyAddLoop
     ld e, a
     add hl, de
     ld (enemyLocation), hl
-    ld a, _AS
+    ld a, _INV_QUOTES
     ld (hl), a
     ld a,1
     ld (enemyAddedFlag),a
@@ -595,7 +625,7 @@ endOfGen
     ;call PRINTAT		; ROM routine to set current cursor position, from row b and column e
     ;ld a,0
     ;call PRINT
-	ret
+    ret
 
 
 setCellAboveBlank
@@ -641,21 +671,60 @@ colLoop
 
 increaseScore
     ld a,(score_mem_tens)				; add one to score, scoring is binary coded decimal (BCD)
-	add a,1
-	daa									; z80 daa instruction realigns for BCD after add or subtract
-	ld (score_mem_tens),a
-	cp 153
-	jr z, addOneToHund
-	jr skipAddHund
+    inc a
+    daa									; z80 daa instruction realigns for BCD after add or subtract
+    ld (score_mem_tens),a
+    cp $99
+    jr z, addOneToHund
+    jr skipAddHund
 addOneToHund
-	ld a, 0
-	ld (score_mem_tens), a
+    xor a
+    ld (score_mem_tens), a
     ld a, (score_mem_hund)
-	add a, 1
-	daa                                   ; z80 daa instruction realigns for BCD after add or subtract
-	ld (score_mem_hund), a
+    inc a
+    daa                                   ; z80 daa instruction realigns for BCD after add or subtract
+    ld (score_mem_hund), a
 skipAddHund
-	ret
+
+
+
+    ; if the player has collected at least 10 dollars open the door
+    ld a, (currentDollarCount)
+    inc a
+    cp 10
+    jr z, openDoor
+    ld (currentDollarCount),a 
+    jr increaseScoreEnd
+openDoor 
+    ld de, _DOOR_OFFSET   ; exit location
+    ld hl, Display+1
+    add hl, de
+    ld a, _DOOR_OPEN_CHARACTER
+    ld (hl),a
+increaseScoreEnd
+    ret
+
+decreaseScore						; z80 daa instruction realigns for BCD after add or subtract
+    ld a,(score_mem_tens)
+    cp 0
+    jr z, decrementHund
+    dec a
+    daa			
+    ld (score_mem_tens),a
+    jr skipDecrementHund
+decrementHund
+    xor a
+    ld (score_mem_tens), a
+    ld a, (score_mem_hund)
+    cp 0
+    jr z, skipDecrementHund
+    dec a
+    daa                                   ; z80 daa instruction realigns for BCD after add or subtract
+    ld (score_mem_hund), a
+skipDecrementHund
+    ret
+
+
 
 printLivesAndScore
     push hl
@@ -699,28 +768,33 @@ updateEnemies
     cp 0
     jr z, moveEnLeft
     cp 1
-    jr z, moveEnRight
+    jr z, moveEnUp
     cp 2
     jr z, moveEnRight
     cp 3
-    jr z, moveEnUp
+    jr z, moveEnRight
     cp 4
-    jr z, moveEnUp
-    cp 5
-    jr z, moveEnDown
+    jp z, moveEnDown
+    ;cp 5
     jp endOfUpdateEnemy
         
     
 moveEnLeft
 	dec hl
-	ld a, (hl)  ; check not a wall
+	ld a, (hl)  ; check not a wall of locked or open door!
 	cp 128
 	jp z, moveRightAndInc ; if it isn't possible to move try different move untill it is!
+	cp _DOOR_OPEN_CHARACTER
+	jp z, moveRightAndInc  
+	cp _DOOR_LOCKED_CHARACTER
+	jp z, moveRightAndInc  	
 	cp 8
 	jp z, moveRightAndInc ; if it isn't possible to move try different move untill it is!
 	cp _INV_A ; game over
 	jp z, gameOver
 	ld (enemyLocation), hl
+	cp _DT
+	call z, decreaseScore 
 	ld hl,(prevEnemyLocation)
 	ld (hl), 0
 	ret
@@ -732,11 +806,17 @@ moveEnRight
 	ld a, (hl)  ; check not a wall
 	cp 128
 	jp z, moveUpAndDec ; if it isn't possible to move try different move untill it is!
+	cp _DOOR_OPEN_CHARACTER
+	jp z, moveUpAndDec  
+	cp _DOOR_LOCKED_CHARACTER
+	jp z, moveUpAndDec 	
 	cp 8
 	jp z, moveUpAndDec ; if it isn't possible to move try different move untill it is!
 	cp _INV_A ; game over
 	jp z, gameOver
 	ld (enemyLocation), hl
+	cp _DT
+	call z, decreaseScore
 	ld hl,(prevEnemyLocation)
 	ld (hl), 0
 	jp endOfUpdateEnemy
@@ -748,11 +828,17 @@ moveEnUp
 	ld a, (hl)  ; check not a wall
 	cp 128
 	jp z, moveDownAndAdd ; if it isn't possible to move try different move untill it is!
+	cp _DOOR_OPEN_CHARACTER
+	jp z, moveDownAndAdd  
+	cp _DOOR_LOCKED_CHARACTER
+	jp z, moveDownAndAdd  
 	cp 8
 	jp z, moveDownAndAdd ; if it isn't possible to move try different move untill it is!
 	cp _INV_A ; game over
 	jp z, gameOver
 	ld (enemyLocation), hl
+	cp _DT
+	call z, decreaseScore 
 	ld hl,(prevEnemyLocation)
 	ld (hl), 0
 	jp endOfUpdateEnemy
@@ -765,11 +851,17 @@ moveEnDown
 	ld a, (hl)  ; check not a wall
 	cp 128
 	jp z, endOfUpdateEnemy ; if it isn't possible to move try different move untill it is!
+	cp _DOOR_OPEN_CHARACTER
+	jp z, endOfUpdateEnemy  
+	cp _DOOR_LOCKED_CHARACTER
+	jp z, endOfUpdateEnemy  	
 	cp 8
 	jp z, endOfUpdateEnemy ; if it isn't possible to move try different move untill it is!
 	cp _INV_A ; game over
 	jp z, gameOver
 	ld (enemyLocation), hl
+	cp _DT
+	call z, decreaseScore 
 	ld hl,(prevEnemyLocation)
 	ld (hl), 0
 	jp endOfUpdateEnemy
@@ -846,6 +938,8 @@ randomSeed
     DW 0
 mazeCount
     DB 0
+currentDollarCount
+    DB 0
 YOU_WON_TEXT_0
     DB 7,3,3,3,3,3,3,3,3,3,3,3,3,132,$ff
 YOU_LOST_TEXT_1
@@ -859,17 +953,19 @@ MAZE_TEXT
 START_GAME_TITLE
     DB 	139,139,139,139,139,0,_Z,_X,_8,_1,0,_M,_A,_Z,_E,_S,0,139,139,139,139,139,$ff
 START_GAME_CRED1
-   DB  139, 0, 139,0,139,0, _Y,_O,_U,_T,_U,_B,_E,_CL,0,_B,_Y,_T,_E,_F,_O,_R,_E,_V,_E,_R,0,139,0,139, 0, 139,$ff
+   DB  139, _INV_A, 139,_INV_A,139,0, _Y,_O,_U,_T,_U,_B,_E,_CL,0,_B,_Y,_T,_E,_F,_O,_R,_E,_V,_E,_R,0,139,_INV_A,139, _INV_A, 139,$ff
 START_GAME_CRED2  
-    DB 139,0,139,0,_B,_Y,0,_A,0,_P,_I,_L,_K,_I,_N,_G,_T,_O,_N,0,_2,_0,_2,_4,0,139,0,139,$ff
+    DB 139,_INV_A,139,0,_B,_Y,0,_A,0,_P,_I,_L,_K,_I,_N,_G,_T,_O,_N,0,_2,_0,_2,_4,0,139,_INV_A,139,$ff
 START_GAME_CRED3
-    DB 139,0,139,0,139,0,139,0,_V,_E,_R,_S,_I,_O,_N,0,_V,_0,_DT,_5,0,139,0,139,0,139,0,139,$ff
-START_TEXT1
-    DB _P, _R, _E, _S, _S, 0, _S,0, _T, _O, 0, _S, _T, _A, _R, _T,$ff
+    DB 139,_INV_A,139,_INV_A,139,_INV_A,139,0,_V,_E,_R,_S,_I,_O,_N,0,_V,_0,_DT,_6,0,139,_INV_A,139,_INV_A,139,_INV_A,139,$ff
 START_TEXT2
     DB _E, _N, _T, _E, _R, _CM,0, _A, _N, 0, _E, _N, _D, _L, _E, _S, _S, 0, _M, _A, _Z, _E,$ff
+START_TEXT_TIP_1
+    DB _D,_O,_O,_R,_S,0,_O,_P,_E,_N,_S,0,_A,_F,_T,_E,_R,0,_T,_E,_N,0,_D,_O,_L,_L,_A,_R,_S,$ff
+START_TEXT_TIP_2
+    DB _I,_F,0,_E,_N,_E,_M,_Y,0,_E,_A,_T,_S,0,_DT,0,_S,_C,_O,_R,_E,0,_R,_E,_D,_U,_C,_E,_S,$ff
 START_TEXT3
-    DB _K, _E, _Y, _S,_CL, $ff
+    DB _K, _E, _Y, _S,_CL,0,_P, _R, _E, _S, _S, 0, _S,0, _T, _O, 0, _S, _T, _A, _R, _T,$ff
 START_TEXT4
     DB _Q, 0, _U, _P, _CM,0, _A, 0, _D, _O, _W, _N, _CM,0, _O, 0, _L, _E, _F,_T,_CM,0,_P,0,_R,_I,_G,_H,_T,$ff
 VariablesEnd:   DB $80
