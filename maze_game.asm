@@ -172,6 +172,11 @@ Line1:          DB $00,$0a                    ; Line 10
                 DW Line1End-Line1Text         ; Line 10 length
 Line1Text:      DB $ea                        ; REM
 
+onceAtGameLoad
+    xor a
+    ld (high_score_tens),a
+    ld (high_score_hund),a
+
 
 start
     call CLS
@@ -233,6 +238,21 @@ titleLoop2
     ld bc, 696
     ld de, START_GAME_CRED3
     call printstring
+
+
+	ld bc,337
+	ld de,high_Score_txt
+	call printstring
+	
+    ld bc, 377
+    ;ld de, last_score_mem_hund ; load address of hundreds
+    ld de, high_score_hund
+	call printNumber
+	ld bc, 379			; bc is offset from start of display
+	;ld de, last_score_mem_tens ; load address of  tens
+	ld de, high_score_tens
+	call printNumber
+
           
     xor a
     ld (score_mem_tens),a
@@ -701,6 +721,37 @@ openDoor
     add hl, de
     ld a, _DOOR_OPEN_CHARACTER
     ld (hl),a
+
+
+; compare with high score and set that if higher
+
+    ld a, (score_mem_hund)
+    ld b,a     ; load the second 8-bit number into register b (via a)
+    ld a, (high_score_hund)   ; load the first 8-bit number into register a
+    cp b            ; compare a with the second 8-bit number (in register b)
+    jr c, setHighScore ; jump if carry flag is set (high_score_hund < score_mem_hund)
+
+    ; check if equal, and if so then check the tens, could be 00 50, or 01 50 in high score and current score
+    jr z, highScoreHundEqualCheckTens
+    ; high_score_hund > score_mem_hund so don't set
+    jr skipCheckRestHighScore
+
+highScoreHundEqualCheckTens
+    ld a, (score_mem_tens)
+    ld b, a
+    ld a, (high_score_tens)
+    cp b
+    jp c, setHighScore ; jump if carry flag is set (a < b)
+
+    jr skipCheckRestHighScore
+
+setHighScore
+    ld a, (score_mem_tens)
+    ld (high_score_tens), a
+    ld a, (score_mem_hund)
+    ld (high_score_hund), a
+    jr skipCheckRestHighScore
+skipCheckRestHighScore
 increaseScoreEnd
     ret
 
@@ -916,6 +967,10 @@ score_mem_tens
     DB 0
 score_mem_hund
     DB 0
+high_score_tens
+    DB 0
+high_score_hund
+    DB 0
 prevPlayerAddress
     DW 0
 playerAbsAddress
@@ -968,6 +1023,8 @@ START_TEXT3
     DB _K, _E, _Y, _S,_CL,0,_P, _R, _E, _S, _S, 0, _S,0, _T, _O, 0, _S, _T, _A, _R, _T,$ff
 START_TEXT4
     DB _Q, 0, _U, _P, _CM,0, _A, 0, _D, _O, _W, _N, _CM,0, _O, 0, _L, _E, _F,_T,_CM,0,_P,0,_R,_I,_G,_H,_T,$ff
+high_Score_txt
+	DB 21,21,21,21,_H,_I,_G,_H,__,__,_S,_C,_O,_R,_E,21,21,21,21,$ff
 VariablesEnd:   DB $80
 BasicEnd:
 
